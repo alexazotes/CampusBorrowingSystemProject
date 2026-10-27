@@ -1,0 +1,138 @@
+{% extends "manage/layout.html" %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block admin_content %}
+<div class="page-container dashboard-page">
+    <header class="page-header">
+        <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+            <span class="breadcrumb-current" aria-current="page">Dashboard</span>
+        </nav>
+        <h2 class="page-title">Dashboard</h2>
+        <p class="page-description">A live overview of equipment availability and borrowing activity.</p>
+    </header>
+
+    <section class="content-section" aria-labelledby="operational-metrics-heading">
+        <h3 class="visually-hidden" id="operational-metrics-heading">Live operational metrics</h3>
+        <div class="stat-grid">
+            <article class="stat-card stat-card--success">
+                <span class="stat-card__icon" aria-hidden="true"><svg class="icon icon--lg"><use href="#i-package"/></svg></span>
+                <div>
+                    <h4 class="stat-card__label">Available units</h4>
+                    <p class="stat-card__value">{{ available_units }}</p>
+                    <a class="stat-card__link" href="{% url 'physical_units_management' %}">View units</a>
+                </div>
+            </article>
+
+            <article class="stat-card stat-card--warning">
+                <span class="stat-card__icon" aria-hidden="true"><svg class="icon icon--lg"><use href="#i-clipboard"/></svg></span>
+                <div>
+                    <h4 class="stat-card__label">Pending requests</h4>
+                    <p class="stat-card__value">{{ pending_requests }}</p>
+                    {% if pending_requests %}
+                        <a class="stat-card__link" href="{% url 'request_review' %}?status=Pending">Review queue</a>
+                    {% else %}
+                        <p class="stat-card__note"><svg class="icon icon--sm"><use href="#i-check"/></svg>Queue is clear</p>
+                    {% endif %}
+                </div>
+            </article>
+
+            <article class="stat-card stat-card--info">
+                <span class="stat-card__icon" aria-hidden="true"><svg class="icon icon--lg"><use href="#i-activity"/></svg></span>
+                <div>
+                    <h4 class="stat-card__label">Active loans</h4>
+                    <p class="stat-card__value">{{ active_loans }}</p>
+                    <a class="stat-card__link" href="{% url 'return_management' %}">Open returns</a>
+                </div>
+            </article>
+
+            <article class="stat-card {% if overdue_loans %}stat-card--danger{% else %}stat-card--success{% endif %}">
+                <span class="stat-card__icon" aria-hidden="true"><svg class="icon icon--lg"><use href="#{% if overdue_loans %}i-alert{% else %}i-check{% endif %}"/></svg></span>
+                <div>
+                    <h4 class="stat-card__label">Overdue loans</h4>
+                    <p class="stat-card__value">{{ overdue_loans }}</p>
+                    {% if overdue_loans %}
+                        <p class="stat-card__note mb-1"><svg class="icon icon--sm"><use href="#i-alert"/></svg>Needs follow-up</p>
+                        <a class="stat-card__link" href="{% url 'return_management' %}">View overdue loans</a>
+                    {% else %}
+                        <p class="stat-card__note"><svg class="icon icon--sm"><use href="#i-check"/></svg>Nothing overdue</p>
+                    {% endif %}
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="content-section" aria-labelledby="reports-heading">
+        <header class="section-header">
+            <h3 class="section-title" id="reports-heading">Issued equipment reports</h3>
+            <p class="section-description">Charts and exports use live loan and physical-unit allocation records.</p>
+        </header>
+
+        <div class="card-toolbar mb-4">
+            <form class="filter-form d-flex-between align-items-end w-100" method="get" action="{% url 'admin_dashboard' %}">
+                <div class="d-flex-gap align-items-end">
+                    <div class="form-group mb-0">
+                        <label class="form-label" for="date-from">Issued from</label>
+                        <input class="form-input" type="date" id="date-from" name="date_from" value="{{ date_from }}">
+                    </div>
+                    <div class="form-group mb-0">
+                        <label class="form-label" for="date-to">Issued through</label>
+                        <input class="form-input" type="date" id="date-to" name="date_to" value="{{ date_to }}">
+                    </div>
+                    <div class="form-group mb-0">
+                        <button class="btn btn--primary" type="submit">Apply range</button>
+                        {% if date_from or date_to %}
+                            <a class="btn btn--link ml-2" href="{% url 'admin_dashboard' %}">Clear</a>
+                        {% endif %}
+                    </div>
+                </div>
+                <a class="btn btn--outline" href="{% url 'dashboard_report_csv' %}?date_from={{ date_from }}&amp;date_to={{ date_to }}">Download CSV report</a>
+            </form>
+        </div>
+
+        <div class="grid-layout">
+            <article class="content-card chart-card" aria-labelledby="monthly-issued-heading">
+                <header class="card-header"><h4 class="card-title" id="monthly-issued-heading">Monthly issued loans</h4></header>
+                <div class="card-body">
+                    {% if monthly_issued %}
+                        <ol class="col-chart" aria-label="Loans issued per month">
+                            {% for row in monthly_issued %}
+                                <li class="col-chart__col" title="{{ row.month|date:'F Y' }}: {{ row.count }} loans">
+                                    <span class="col-chart__value">{{ row.count }}</span>
+                                    <span class="col-chart__bar" style="height: {% widthratio row.count max_monthly_issued 85 %}%;"></span>
+                                </li>
+                            {% endfor %}
+                        </ol>
+                        <ol class="col-chart__labels" aria-hidden="true">
+                            {% for row in monthly_issued %}<li>{{ row.month|date:"M y" }}</li>{% endfor %}
+                        </ol>
+                    {% else %}
+                        <div class="empty-state"><svg class="icon"><use href="#i-activity"/></svg><h3>No loans in this range</h3><p>Issued loans will appear here as soon as equipment is released.</p></div>
+                    {% endif %}
+                </div>
+            </article>
+
+            <article class="content-card chart-card" aria-labelledby="category-usage-heading">
+                <header class="card-header"><h4 class="card-title" id="category-usage-heading">Category usage (units issued)</h4></header>
+                <div class="card-body">
+                    {% if category_usage %}
+                        <ol class="bar-chart">
+                            {% for row in category_usage %}
+                                <li>
+                                    <div class="bar-chart__meta">
+                                        <span class="bar-chart__name" title="{{ row.request_item__catalog_item__category__name }}">{{ row.request_item__catalog_item__category__name }}</span>
+                                        <span class="bar-chart__count">{{ row.count }} <small>units</small></span>
+                                    </div>
+                                    <div class="bar-chart__track"><div class="bar-chart__fill" style="width: {% widthratio row.count max_category_usage 100 %}%;"></div></div>
+                                </li>
+                            {% endfor %}
+                        </ol>
+                    {% else %}
+                        <div class="empty-state"><svg class="icon"><use href="#i-package"/></svg><h3>No units issued in this range</h3><p>Category usage is calculated from released unit allocations.</p></div>
+                    {% endif %}
+                </div>
+            </article>
+        </div>
+    </section>
+</div>
+{% endblock %}

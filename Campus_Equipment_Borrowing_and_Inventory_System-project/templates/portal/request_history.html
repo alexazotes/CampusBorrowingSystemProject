@@ -1,0 +1,118 @@
+{% extends "portal/layout.html" %}
+
+{% block page_title %}My requests{% endblock %}
+
+{% block portal_content %}
+<header class="page-header d-flex-between">
+    <div>
+        <h2 class="page-title">My requests</h2>
+        <p class="page-description">Track the status of everything you have asked to borrow.</p>
+    </div>
+    <div class="d-flex-gap" style="align-items: center;">
+        <span class="badge badge--neutral">{{ page_obj.paginator.count }} request{{ page_obj.paginator.count|pluralize }}</span>
+        <a class="btn btn--primary" href="{% url 'borrow_request_create' %}"><svg class="icon icon--sm"><use href="#i-plus"/></svg>New request</a>
+    </div>
+</header>
+
+{% for row in history_rows %}
+    {% with req=row.borrow_request status=row.borrow_request.status %}
+    <article class="content-card request-card" aria-labelledby="request-{{ req.id }}-title">
+        <header class="card-header">
+            <h3 class="card-title" id="request-{{ req.id }}-title">Request #{{ req.id }}</h3>
+            <div class="d-flex-gap" style="gap: .4rem;">
+                <span class="badge badge--{{ status|slugify }}">{{ status }}</span>
+                {% if row.is_overdue %}<span class="badge badge--overdue">Overdue</span>{% endif %}
+            </div>
+        </header>
+
+        <div class="card-body">
+            <div class="request-card__meta">
+                <span>Submitted <strong>{{ req.requested_at|date:"M d, Y" }}</strong></span>
+                <span>Due date: <strong>{{ req.return_date|date:"M d, Y" }}</strong></span>
+                {% if row.loan %}<span>Released: <strong>{{ row.loan.issued_at|date:"M d, Y" }}</strong></span>{% endif %}
+            </div>
+
+            {% if status != "Rejected" and status != "Cancelled" %}
+                <ol class="stepper" aria-label="Request progress">
+                    <li class="stepper__step {% if status == 'Pending' %}is-current{% else %}is-done{% endif %}">Submitted</li>
+                    <li class="stepper__step {% if status == 'Approved' %}is-current{% elif status != 'Pending' %}is-done{% endif %}">Approved</li>
+                    <li class="stepper__step {% if status == 'Issued' %}is-current{% elif status == 'Partially Returned' or status == 'Returned' %}is-done{% endif %}">Released</li>
+                    <li class="stepper__step {% if status == 'Partially Returned' %}is-current{% elif status == 'Returned' %}is-done{% endif %}">Returned</li>
+                </ol>
+            {% endif %}
+
+            {% if req.admin_remarks %}
+                <div class="remark {% if status == 'Rejected' %}remark--bad{% endif %}">
+                    <strong>{% if status == "Rejected" %}Reason for rejection:{% else %}Note from administrator:{% endif %}</strong>
+                    {{ req.admin_remarks }}
+                </div>
+            {% endif %}
+
+            <p class="data-label">Purpose</p>
+            <p>{{ req.purpose }}</p>
+
+            <div class="table-responsive">
+                <table class="data-table data-table--sm">
+                    <caption class="visually-hidden">Equipment in request #{{ req.id }}</caption>
+                    <thead>
+                        <tr><th scope="col">Equipment</th><th scope="col">Qty</th><th scope="col">Assigned units</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for item_row in row.item_rows %}
+                            <tr>
+                                <td><strong>{{ item_row.request_item.catalog_item.name }}</strong><br><small class="text-muted">{{ item_row.request_item.catalog_item.category.name }}</small></td>
+                                <td>{{ item_row.request_item.quantity }}</td>
+                                <td>
+                                    {% for allocation, return_record in item_row.allocations %}
+                                        <div class="unit-line mb-1">
+                                            <span class="badge badge--outline">Asset {{ allocation.unit.asset_code }}</span>
+                                            {% if return_record %}
+                                                <span class="badge badge--returned">Item returned {{ return_record.returned_at|date:"M d" }}</span>
+                                                <small class="text-muted">Condition: {{ return_record.condition_on_return }}</small>
+                                            {% elif row.loan %}
+                                                <span class="badge badge--issued">With you</span>
+                                            {% elif status == "Approved" %}
+                                                <span class="badge badge--reserved">Reserved</span>
+                                            {% endif %}
+                                        </div>
+                                    {% empty %}
+                                        <span class="text-muted">{% if status == "Rejected" or status == "Cancelled" %}Not assigned{% else %}Assigned when approved{% endif %}</span>
+                                    {% endfor %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% if status == "Pending" or status == "Approved" %}
+            <footer class="card-footer d-flex-between" style="align-items: center;">
+                <span class="text-muted text-sm">
+                    {% if status == "Approved" %}Units are reserved for you. Cancelling releases them for others.{% else %}Waiting for an administrator to review this request.{% endif %}
+                </span>
+                <form method="post" action="{% url 'cancel_borrow_request' req.id %}">
+                    {% csrf_token %}
+                    <button class="btn btn--danger btn--sm" type="submit" data-confirm="Cancel request #{{ req.id }}?{% if status == 'Approved' %} Your reserved equipment will be released.{% endif %} This cannot be undone.">Cancel request</button>
+                </form>
+            </footer>
+        {% endif %}
+    </article>
+    {% endwith %}
+{% empty %}
+    <div class="empty-state">
+        <svg class="icon"><use href="#i-clipboard"/></svg>
+        <h3>You have not made any requests yet</h3>
+        <p>Browse the catalog, pick what you need, and your requests will be tracked here.</p>
+        <a class="btn btn--primary mt-3" href="{% url 'browse_catalog' %}">Browse equipment</a>
+    </div>
+{% endfor %}
+
+{% if page_obj.paginator.num_pages > 1 %}
+    <nav class="pagination-nav" aria-label="Request pages">
+        {% if page_obj.has_previous %}<a class="btn btn--outline btn--sm" href="?page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}
+        <span class="pagination-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a class="btn btn--outline btn--sm" href="?page={{ page_obj.next_page_number }}">Next</a>{% endif %}
+    </nav>
+{% endif %}
+{% endblock %}

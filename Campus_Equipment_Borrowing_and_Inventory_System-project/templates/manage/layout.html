@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}{% block page_title %}System Administration{% endblock %} | Campus Equipment System{% endblock %}
+
+{% block main_layout %}
+{% with url_name=request.resolver_match.url_name %}
+<div class="admin-layout">
+    <aside class="admin-sidebar" id="admin-sidebar" aria-label="Administration">
+        <div class="sidebar-brand">
+            <span class="sidebar-brand__mark" aria-hidden="true"><svg class="icon icon--lg"><use href="#i-package"/></svg></span>
+            <span class="sidebar-brand__text">
+                <strong>Campus Equipment</strong>
+                <small>Admin console</small>
+            </span>
+        </div>
+
+        <nav class="admin-nav" aria-label="Main administration navigation">
+            <p class="admin-nav__heading">Overview</p>
+            <ul class="admin-nav__list">
+                <li class="admin-nav__item">
+                    <a class="admin-nav__link {% if url_name == 'admin_dashboard' %}is-active{% endif %}" href="{% url 'admin_dashboard' %}" {% if url_name == 'admin_dashboard' %}aria-current="page"{% endif %}>
+                        <svg class="icon"><use href="#i-grid"/></svg><span>Dashboard</span>
+                    </a>
+                </li>
+            </ul>
+
+            <p class="admin-nav__heading">Inventory</p>
+            <ul class="admin-nav__list">
+                <li class="admin-nav__item">
+                    <a class="admin-nav__link {% if url_name in 'category_management,catalog_item_management,physical_units_management' %}is-active{% endif %}" href="{% url 'category_management' %}" {% if url_name in 'category_management,catalog_item_management,physical_units_management' %}aria-current="page"{% endif %}>
+                        <svg class="icon"><use href="#i-package"/></svg><span>Equipment Catalog</span><span class="admin-nav__badge">A2</span>
+                    </a>
+                </li>
+                <li class="admin-nav__item">
+                    <a class="admin-nav__link {% if url_name in 'maintenance_management,open_maintenance_record,close_maintenance_record' %}is-active{% endif %}" href="{% url 'maintenance_management' %}" {% if url_name in 'maintenance_management,open_maintenance_record,close_maintenance_record' %}aria-current="page"{% endif %}>
+                        <svg class="icon"><use href="#i-tool"/></svg><span>Maintenance</span><span class="admin-nav__badge">A6</span>
+                    </a>
+                </li>
+            </ul>
+
+            <p class="admin-nav__heading">Borrowing workflow</p>
+            <ul class="admin-nav__list">
+                <li class="admin-nav__item">
+                    <a class="admin-nav__link {% if url_name in 'request_review,request_approve,request_reject' %}is-active{% endif %}" href="{% url 'request_review' %}" {% if url_name in 'request_review,request_approve,request_reject' %}aria-current="page"{% endif %}>
+                        <svg class="icon"><use href="#i-clipboard"/></svg><span>Request Review</span><span class="admin-nav__badge">A3</span>
+                    </a>
+                </li>
+                <li class="admin-nav__item">
+                    <a class="admin-nav__link {% if url_name in 'release_management,issue_approved_request,revise_approved_due_date,borrowing_slip' %}is-active{% endif %}" href="{% url 'release_management' %}" {% if url_name in 'release_management,issue_approved_request,revise_approved_due_date,borrowing_slip' %}aria-current="page"{% endif %}>
+                        <svg class="icon"><use href="#i-send"/></svg><span>Release Assets</span><span class="admin-nav__badge">A4</span>
+                    </a>
+                </li>
+                <li class="admin-nav__item">
+                    <a class="admin-nav__link {% if url_name in 'return_management,record_unit_return' %}is-active{% endif %}" href="{% url 'return_management' %}" {% if url_name in 'return_management,record_unit_return' %}aria-current="page"{% endif %}>
+                        <svg class="icon"><use href="#i-return"/></svg><span>Returns &amp; Overdue</span><span class="admin-nav__badge">A5</span>
+                    </a>
+                </li>
+            </ul>
+
+            <p class="admin-nav__heading">Administration</p>
+            <ul class="admin-nav__list">
+                <li class="admin-nav__item">
+                    <a class="admin-nav__link {% if url_name in 'account_management,toggle_account_status' %}is-active{% endif %}" href="{% url 'account_management' %}" {% if url_name in 'account_management,toggle_account_status' %}aria-current="page"{% endif %}>
+                        <svg class="icon"><use href="#i-users"/></svg><span>Accounts</span><span class="admin-nav__badge">A1</span>
+                    </a>
+                </li>
+                <li class="admin-nav__item">
+                    <a class="admin-nav__link {% if url_name == 'audit_settings_management' %}is-active{% endif %}" href="{% url 'audit_settings_management' %}" {% if url_name == 'audit_settings_management' %}aria-current="page"{% endif %}>
+                        <svg class="icon"><use href="#i-shield"/></svg><span>Audit &amp; Settings</span><span class="admin-nav__badge">A8</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="sidebar-user">
+            <span class="avatar" aria-hidden="true">{{ request.user.username|slice:":1"|upper }}</span>
+            <div class="sidebar-user__meta">
+                <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+                <small>Administrator</small>
+            </div>
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button class="icon-btn" type="submit" title="Sign out" aria-label="Sign out"><svg class="icon"><use href="#i-logout"/></svg></button>
+            </form>
+        </div>
+    </aside>
+
+    <div class="sidebar-scrim" data-sidebar-close hidden></div>
+
+    <div class="admin-main">
+        <header class="admin-header">
+            <button class="icon-btn nav-toggle" type="button" aria-controls="admin-sidebar" aria-expanded="false" aria-label="Open navigation">
+                <svg class="icon"><use href="#i-menu"/></svg>
+            </button>
+            <p class="admin-header__eyebrow">Campus Equipment Borrowing and Inventory System</p>
+            <p class="admin-header__date"><svg class="icon icon--sm"><use href="#i-calendar"/></svg>{% now "l, F j, Y" %}</p>
+        </header>
+
+        <main class="admin-content" id="main-content" tabindex="-1">
+            {% if messages %}
+                <section class="notification-area" aria-label="Notifications" aria-live="polite">
+                    {% for message in messages %}
+                        <div class="alert alert--{{ message.tags|default:'info' }}" role="status">{{ message }}</div>
+                    {% endfor %}
+                </section>
+            {% endif %}
+
+            {% block admin_content %}{% endblock %}
+        </main>
+    </div>
+</div>
+{% endwith %}
+{% endblock %}

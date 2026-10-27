@@ -1,0 +1,121 @@
+{% extends "manage/layout.html" %}
+
+{% block page_title %}Request Review{% endblock %}
+
+{% block admin_content %}
+<div class="page-container">
+    <header class="page-header d-flex-between">
+        <div>
+            <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+                <a class="breadcrumb-link" href="{% url 'admin_dashboard' %}">Dashboard</a>
+                <span class="breadcrumb-separator" aria-hidden="true">/</span>
+                <span class="breadcrumb-current" aria-current="page">Request Review</span>
+            </nav>
+            <h2 class="page-title">Request Review</h2>
+            <p class="page-description">Review borrowing requests and reserve physical equipment units.</p>
+        </div>
+        <span class="badge badge--neutral">{{ page_obj.paginator.count }} request(s)</span>
+    </header>
+
+    <div class="card-toolbar mb-4">
+        <form class="filter-form d-flex-gap" method="get">
+            <input class="form-input form-input--search" type="search" name="q" value="{{ search_query }}" placeholder="Search borrower, equipment, purpose..." aria-label="Search requests">
+            <select class="form-select" name="status" aria-label="Filter by status">
+                <option value="">All statuses</option>
+                {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn--primary" type="submit">Filter</button>
+            <a class="btn btn--outline" href="{% url 'request_review' %}">Reset</a>
+        </form>
+    </div>
+
+    <section class="requests-list">
+        {% for borrow_request in requests %}
+            <article class="content-card mb-4">
+                <header class="card-header d-flex-between">
+                    <h3 class="card-title">Request #{{ borrow_request.id }}</h3>
+                    <span class="badge badge--{{ borrow_request.status|slugify }}">{{ borrow_request.status }}</span>
+                </header>
+
+                <div class="card-body">
+                    <div class="data-grid data-grid--3-col">
+                        <div class="data-group">
+                            <strong class="data-label">Borrower</strong>
+                            <p class="data-value">{{ borrow_request.user.get_full_name|default:borrow_request.user.username }}</p>
+                            <small class="text-muted">{{ borrow_request.user.email|default:"No email provided" }}</small>
+                        </div>
+                        <div class="data-group">
+                            <strong class="data-label">Requested Date</strong>
+                            <p class="data-value">{{ borrow_request.requested_at|date:"M d, Y h:i A" }}</p>
+                        </div>
+                        <div class="data-group">
+                            <strong class="data-label">Requested Due Date</strong>
+                            <p class="data-value">{{ borrow_request.return_date|date:"M d, Y" }}</p>
+                        </div>
+                    </div>
+
+                    <div class="data-group mt-3">
+                        <strong class="data-label">Purpose</strong>
+                        <p class="data-value">{{ borrow_request.purpose|default:"No purpose provided" }}</p>
+                    </div>
+
+                    <div class="table-responsive mt-3">
+                        <table class="data-table data-table--sm">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Catalog Item</th>
+                                    <th scope="col">Qty</th>
+                                    <th scope="col">Allocated Asset Codes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for request_item in borrow_request.items.all %}
+                                    <tr>
+                                        <td>{{ request_item.catalog_item.name }}</td>
+                                        <td>{{ request_item.quantity }}</td>
+                                        <td>
+                                            {% for allocation in request_item.allocations.all %}
+                                                <span class="badge badge--outline">{{ allocation.unit.asset_code }}</span>
+                                            {% empty %}
+                                                <span class="text-muted">Not allocated</span>
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr><td colspan="3" class="text-muted">No equipment items found.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {% if borrow_request.status == "Pending" %}
+                        <div class="action-grid mt-4 d-flex-gap">
+                            <form class="approval-form w-50" method="post" action="{% url 'request_approve' borrow_request.id %}">
+                                {% csrf_token %}
+                                <div class="form-group">
+                                    <label class="form-label visually-hidden" for="approve-remarks-{{ borrow_request.id }}">Approval Remarks</label>
+                                    <textarea class="form-textarea" id="approve-remarks-{{ borrow_request.id }}" name="admin_remarks" rows="2" placeholder="Optional note for the borrower"></textarea>
+                                </div>
+                                <button class="btn btn--success w-100" type="submit">Approve &amp; Reserve</button>
+                            </form>
+
+                            <form class="rejection-form w-50" method="post" action="{% url 'request_reject' borrow_request.id %}">
+                                {% csrf_token %}
+                                <div class="form-group">
+                                    <label class="form-label visually-hidden" for="reject-remarks-{{ borrow_request.id }}">Rejection Reason</label>
+                                    <textarea class="form-textarea" id="reject-remarks-{{ borrow_request.id }}" name="rejection_reason" rows="2" required placeholder="Required rejection reason"></textarea>
+                                </div>
+                                <button class="btn btn--danger w-100" type="submit" data-confirm="Reject this request?">Reject</button>
+                            </form>
+                        </div>
+                    {% endif %}
+                </div>
+            </article>
+        {% empty %}
+            <div class="alert alert--info">No requests match your search or filter.</div>
+        {% endfor %}
+    </section>
+</div>
+{% endblock %}

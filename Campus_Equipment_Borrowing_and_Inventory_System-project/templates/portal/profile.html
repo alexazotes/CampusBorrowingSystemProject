@@ -1,0 +1,45 @@
+{% extends "portal/layout.html" %}
+
+{% block page_title %}My profile{% endblock %}
+
+{% block portal_content %}
+<header class="page-header">
+    <h2 class="page-title">My profile</h2>
+    <p class="page-description">Update your name and contact number. Your role and account status are managed by administrators.</p>
+</header>
+
+<div class="profile-layout">
+    <section class="content-card profile-summary" aria-label="Account summary">
+        <span class="avatar" aria-hidden="true">{{ request.user.username|slice:":1"|upper }}</span>
+        <h3 class="mb-1">{{ request.user.get_full_name|default:request.user.username }}</h3>
+        <span class="badge badge--active">Account active</span>
+        <dl class="fact-list">
+            <div><dt>Username</dt><dd>{{ request.user.username }}</dd></div>
+            <div><dt>Role</dt><dd>{{ request.user.profile.get_role_display }}</dd></div>
+            <div><dt>Member since</dt><dd>{{ request.user.date_joined|date:"M Y" }}</dd></div>
+        </dl>
+    </section>
+
+    <form class="content-card form-section" method="post" novalidate>
+        {% csrf_token %}
+        <h3 class="section-title">Personal details</h3>
+        {% if form.errors %}
+            <div class="alert alert--error" role="alert"><p>Please correct the highlighted fields.</p></div>
+        {% endif %}
+        {{ form.non_field_errors }}
+        <div class="grid-form">
+            {% for field in form %}
+                <div class="form-group {% if field.errors %}has-error{% endif %} {% if field.name == 'contact_number' %}form-group--full{% endif %}">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+                    {{ field.errors }}
+                </div>
+            {% endfor %}
+        </div>
+        <div class="form-actions">
+            <button class="btn btn--primary" type="submit">Save changes</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

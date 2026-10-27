@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Sign in | Campus Equipment System{% endblock %}
+{% block body_class %}auth-body{% endblock %}
+
+{% block main_layout %}
+<main class="auth-layout" id="main-content">
+    <section class="auth-aside" aria-label="About the system">
+        <div class="sidebar-brand">
+            <span class="sidebar-brand__mark" aria-hidden="true"><svg class="icon icon--lg"><use href="#i-package"/></svg></span>
+            <span class="sidebar-brand__text"><strong>Campus Equipment</strong><small>Borrowing &amp; Inventory</small></span>
+        </div>
+        <div>
+            <h2>Borrow what you need. Know where everything is.</h2>
+        </div>
+        <ul>
+            <li><svg class="icon"><use href="#i-clipboard"/></svg><span><strong>Request in minutes</strong>Pick up to three items, set a return date, and track the decision.</span></li>
+            <li><svg class="icon"><use href="#i-package"/></svg><span><strong>Every unit accounted for</strong>Each physical asset has its own history, so nothing is issued twice.</span></li>
+            <li><svg class="icon"><use href="#i-shield"/></svg><span><strong>Accountable by design</strong>Approvals, releases and returns are recorded with who and when.</span></li>
+        </ul>
+    </section>
+
+    <section class="auth-panel">
+        <div class="auth-container">
+            <header class="auth-header">
+                <p class="auth-title">Campus Equipment System</p>
+                <h1 class="auth-subtitle">Sign in</h1>
+            </header>
+
+            {% if form.errors %}
+                <div class="alert alert--error" role="alert"><p>Invalid username or password. Please try again.</p></div>
+            {% endif %}
+
+            {% if next %}
+                <div class="alert alert--warning" role="alert">
+                    {% if user.is_authenticated %}
+                        <p>Your account does not have permission to access that page.</p>
+                    {% else %}
+                        <p>Please sign in to continue.</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            <form class="auth-form" method="post">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.username.id_for_label }}">Username</label>
+                    {{ form.username }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.password.id_for_label }}">Password</label>
+                    {{ form.password }}
+                </div>
+                <input type="hidden" name="next" value="{{ next }}">
+                <div class="form-actions">
+                    <button class="btn btn--primary btn--lg w-100" type="submit">Sign in</button>
+                </div>
+            </form>
+        </div>
+    </section>
+</main>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "portal/layout.html" %}
+
+{% block page_title %}Browse equipment{% endblock %}
+
+{% block portal_content %}
+<section class="hero" aria-labelledby="catalog-heading">
+    <div>
+        <h2 id="catalog-heading">Browse equipment</h2>
+        <p>See what is available right now. Submitting a request does not reserve anything until an administrator approves it.</p>
+    </div>
+    <a class="btn btn--primary btn--lg" href="{% url 'borrow_request_create' %}"><svg class="icon"><use href="#i-plus"/></svg>New request</a>
+</section>
+
+{% regroup items by category.name as category_groups %}
+
+<div class="catalog-tools">
+    <div class="form-group mb-0" style="flex: 1 1 280px;">
+        <label class="visually-hidden" for="catalog-search">Search equipment by name or category</label>
+        <input class="form-input form-input--search" type="search" id="catalog-search" placeholder="Search by name, category or description…" autocomplete="off">
+    </div>
+    <div class="chip-row" role="group" aria-label="Filter by category">
+        <button class="chip" type="button" data-category-chip="" aria-pressed="true">All</button>
+        {% for group in category_groups %}
+            <button class="chip" type="button" data-category-chip="{{ group.grouper|lower }}" aria-pressed="false">{{ group.grouper }}</button>
+        {% endfor %}
+    </div>
+</div>
+<p class="text-muted text-sm" id="catalog-status" role="status" aria-live="polite"></p>
+
+{% if items %}
+    <div class="catalog-grid">
+        {% for item in items %}
+            <article class="item-card" data-catalog-card data-category="{{ item.category.name|lower }}" data-search="{{ item.name|lower }} {{ item.category.name|lower }} {{ item.description|lower }}">
+                <div>
+                    <span class="item-card__category">{{ item.category.name }}</span>
+                    <h3 class="item-card__name">{{ item.name }}</h3>
+                </div>
+                <p class="item-card__desc">{{ item.description|default:"No description provided."|truncatewords:28 }}</p>
+                <div class="item-card__foot">
+                    {% if item.available_quantity %}
+                        <span class="badge badge--available"><strong>Available now:</strong> {{ item.available_quantity }}</span>
+                    {% else %}
+                        <span class="badge badge--cancelled"><strong>Available now:</strong> 0</span>
+                    {% endif %}
+                    <a class="btn btn--sm btn--outline" href="{% url 'borrow_request_create' %}">Request <svg class="icon icon--sm"><use href="#i-arrow"/></svg></a>
+                </div>
+            </article>
+        {% endfor %}
+    </div>
+    <div class="empty-state mt-4" id="catalog-empty" hidden>
+        <svg class="icon"><use href="#i-search"/></svg>
+        <h3>No equipment matches your search</h3>
+        <p>Try a different keyword or choose another category.</p>
+    </div>
+{% else %}
+    <div class="empty-state">
+        <svg class="icon"><use href="#i-package"/></svg>
+        <h3>No equipment is listed yet</h3>
+        <p>Equipment appears here once an administrator adds it to the catalog.</p>
+    </div>
+{% endif %}
+{% endblock %}

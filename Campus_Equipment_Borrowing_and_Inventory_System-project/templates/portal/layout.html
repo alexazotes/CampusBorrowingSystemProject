@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}{% block page_title %}Portal{% endblock %} | Campus Equipment System{% endblock %}
+
+{% block main_layout %}
+{% with url_name=request.resolver_match.url_name %}
+<header class="portal-top">
+    <div class="portal-top__inner">
+        <a class="portal-brand" href="{% url 'browse_catalog' %}">
+            <span class="sidebar-brand__mark" aria-hidden="true"><svg class="icon"><use href="#i-package"/></svg></span>
+            <span>Campus Equipment</span>
+        </a>
+
+        <nav class="portal-nav" aria-label="Portal navigation">
+            <a class="portal-nav__link {% if url_name == 'browse_catalog' %}is-active{% endif %}" href="{% url 'browse_catalog' %}" {% if url_name == 'browse_catalog' %}aria-current="page"{% endif %}>
+                <svg class="icon icon--sm"><use href="#i-search"/></svg>Browse equipment
+            </a>
+            <a class="portal-nav__link {% if url_name == 'borrow_request_create' %}is-active{% endif %}" href="{% url 'borrow_request_create' %}" {% if url_name == 'borrow_request_create' %}aria-current="page"{% endif %}>
+                <svg class="icon icon--sm"><use href="#i-plus"/></svg>New request
+            </a>
+            <a class="portal-nav__link {% if url_name in 'request_history,cancel_borrow_request' %}is-active{% endif %}" href="{% url 'request_history' %}" {% if url_name in 'request_history,cancel_borrow_request' %}aria-current="page"{% endif %}>
+                <svg class="icon icon--sm"><use href="#i-clipboard"/></svg>My requests
+            </a>
+            <a class="portal-nav__link {% if url_name == 'profile_view' %}is-active{% endif %}" href="{% url 'profile_view' %}" {% if url_name == 'profile_view' %}aria-current="page"{% endif %}>
+                <svg class="icon icon--sm"><use href="#i-user"/></svg>Profile
+            </a>
+        </nav>
+
+        <div class="portal-user">
+            <span class="avatar" aria-hidden="true">{{ request.user.username|slice:":1"|upper }}</span>
+            <span class="portal-user__name">{{ request.user.get_full_name|default:request.user.username }}</span>
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button class="icon-btn" type="submit" title="Sign out" aria-label="Sign out"><svg class="icon"><use href="#i-logout"/></svg></button>
+            </form>
+        </div>
+    </div>
+</header>
+
+<main class="portal-main" id="main-content" tabindex="-1">
+    {% if messages %}
+        <section class="notification-area" aria-label="Notifications" aria-live="polite">
+            {% for message in messages %}
+                <div class="alert alert--{{ message.tags|default:'info' }}" role="status">{{ message }}</div>
+            {% endfor %}
+        </section>
+    {% endif %}
+    {% block portal_content %}{% endblock %}
+</main>
+
+<footer class="portal-footer">Campus Equipment Borrowing and Inventory System · Requests are reviewed by campus administrators.</footer>
+{% endwith %}
+{% endblock %}

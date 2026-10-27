@@ -1,0 +1,81 @@
+{% extends "portal/layout.html" %}
+
+{% block page_title %}New request{% endblock %}
+
+{% block portal_content %}
+<header class="page-header">
+    <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+        <a class="breadcrumb-link" href="{% url 'browse_catalog' %}">Equipment</a>
+        <span class="breadcrumb-separator" aria-hidden="true">/</span>
+        <span class="breadcrumb-current" aria-current="page">New request</span>
+    </nav>
+    <h2 class="page-title">Request equipment</h2>
+    <p class="page-description">Choose one to three different items, say what it is for, and pick a return date.</p>
+</header>
+
+<div class="request-layout">
+    <form class="content-card form-section" method="post" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors or form.errors %}
+            <div class="alert alert--error" role="alert">
+                <p>Please fix the highlighted fields below. Nothing has been submitted yet.</p>
+            </div>
+        {% endif %}
+        {{ form.non_field_errors }}
+
+        <fieldset style="border: 0; padding: 0; margin: 0 0 1.5rem;">
+            <legend class="section-title" style="padding: 0; margin-bottom: .75rem;">Equipment</legend>
+            {% for item_field, quantity_field in item_rows %}
+                <div class="item-row">
+                    <div class="item-row__title">
+                        <span>Item {{ forloop.counter }}</span>
+                        <span>{% if forloop.first %}Required{% else %}Optional{% endif %}</span>
+                    </div>
+                    <div class="form-group {% if item_field.errors %}has-error{% endif %}">
+                        <label for="{{ item_field.id_for_label }}">Equipment</label>
+                        {{ item_field }}
+                        {{ item_field.errors }}
+                    </div>
+                    <div class="form-group {% if quantity_field.errors %}has-error{% endif %}">
+                        <label for="{{ quantity_field.id_for_label }}">Quantity</label>
+                        {{ quantity_field }}
+                        {{ quantity_field.errors }}
+                    </div>
+                </div>
+            {% endfor %}
+            <p class="form-hint">Up to {{ max_quantity }} unit{{ max_quantity|pluralize }} of each item.</p>
+        </fieldset>
+
+        <div class="form-group {% if form.purpose.errors %}has-error{% endif %}">
+            <label for="{{ form.purpose.id_for_label }}">Purpose</label>
+            {{ form.purpose }}
+            {{ form.purpose.errors }}
+        </div>
+
+        <div class="form-group {% if form.return_date.errors %}has-error{% endif %}" style="max-width: 280px;">
+            <label for="{{ form.return_date.id_for_label }}">Requested return date</label>
+            {{ form.return_date }}
+            <p class="form-hint">Latest allowed: {{ max_return_date|date:"M d, Y" }}</p>
+            {{ form.return_date.errors }}
+        </div>
+
+        <div class="form-actions">
+            <button class="btn btn--primary btn--lg" type="submit">Submit request</button>
+            <a class="btn btn--outline btn--lg" href="{% url 'browse_catalog' %}">Cancel</a>
+        </div>
+    </form>
+
+    <aside class="content-card rules-card" aria-label="Borrowing rules">
+        <header class="card-header"><h3 class="card-title">Before you submit</h3></header>
+        <div class="card-body">
+            <ul class="rules-list">
+                <li><svg class="icon"><use href="#i-info"/></svg><span><strong>Pending, not reserved</strong>Equipment is only held for you after an administrator approves the request.</span></li>
+                <li><svg class="icon"><use href="#i-calendar"/></svg><span><strong>Up to {{ max_loan_duration_days }} day{{ max_loan_duration_days|pluralize }}</strong>The return date must be after today ({{ today|date:"M d" }}) and no later than {{ max_return_date|date:"M d, Y" }}.</span></li>
+                <li><svg class="icon"><use href="#i-package"/></svg><span><strong>Each item once</strong>To borrow more of the same item, raise the quantity instead of adding a second row.</span></li>
+                <li><svg class="icon"><use href="#i-clipboard"/></svg><span><strong>Track it</strong>Follow the decision under <a href="{% url 'request_history' %}">My requests</a>. You can cancel before release.</span></li>
+            </ul>
+        </div>
+    </aside>
+</div>
+{% endblock %}
